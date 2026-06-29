@@ -1,0 +1,6 @@
+{
+  "name": "SmartRoute",
+  "description": "Sistema comparativo de algoritmos inteligentes para predicción y optimización de rutas",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
