@@ -17,57 +17,25 @@ import csv
 # =====================================================================
 # 1. VECINO MÁS CERCANO (TSP)
 # =====================================================================
+from backend.nearest_neighbor import vecino_mas_cercano as _vmc_real
+
+
 def ejecutar_vecino_mas_cercano(puntos, id_inicio, criterio, regresar_origen):
     """
-    ### CONEXIÓN LOGICA REAL ###
-    Integra aquí la lógica del Algoritmo del Vecino Más Cercano.
-    
+    Wrapper que delega la ejecución al módulo backend/nearest_neighbor.py.
+
     Parámetros:
-      - puntos (list): Lista de diccionarios con la info de los puntos.
-      - id_inicio (str): Identificador del punto inicial.
-      - criterio (str): 'Solo distancia física' o 'Distancia ponderada por prioridad'.
-      - regresar_origen (bool): Si es verdadero, añade el id_inicio al final de la ruta.
-      
+      - puntos (list)       : Lista de dicts con claves id, x, y, prioridad, …
+      - id_inicio (str)     : Identificador del punto inicial (depósito/base).
+      - criterio (str)      : 'Solo distancia física' |
+                              'Distancia ponderada por prioridad'
+      - regresar_origen (bool): Si True, cierra el ciclo volviendo al inicio.
+
     Retorna:
-      - dict: Resultados de la corrida (ruta, distancia, tiempo, memoria, operaciones).
+      - dict: ruta, distancia, tiempo, memoria, operaciones
     """
-    if not puntos:
-        return {"ruta": [], "distancia": 0.0, "tiempo": 0.0, "memoria": 0.0, "operaciones": 0}
-        
-    inicio_time = time.time()
-    
-    # --- ESPACIO PARA LÓGICA DE PROGRAMACIÓN REAL ---
-    # TODO: Implementar recorrido voraz seleccionando el nodo más cercano no visitado.
-    
-    restantes = [p for p in puntos if p["id"] != id_inicio]
-    random.seed(int(time.time() * 1000) % 10000)
-    random.shuffle(restantes)
-    
-    ruta = [id_inicio] + [p["id"] for p in restantes]
-    if regresar_origen:
-        ruta.append(id_inicio)
-        
-    # Calcular costo de distancia euclidiana basada en coordenadas
-    distancia = 0.0
-    p_dict = {p["id"]: p for p in puntos}
-    for i in range(len(ruta) - 1):
-        p1 = p_dict.get(ruta[i])
-        p2 = p_dict.get(ruta[i+1])
-        if p1 and p2:
-            distancia += ((p2["x"] - p1["x"])**2 + (p2["y"] - p1["y"])**2)**0.5
-            
-    fin_time = time.time()
-    tiempo = (fin_time - inicio_time) + random.uniform(0.001, 0.003)
-    memoria = random.uniform(120.0, 160.0) # KB
-    operaciones = len(puntos) ** 2
-    
-    return {
-        "ruta": ruta,
-        "distancia": distancia,
-        "tiempo": tiempo,
-        "memoria": memoria,
-        "operaciones": operaciones
-    }
+    return _vmc_real(puntos, id_inicio, criterio, regresar_origen)
+
 
 # =====================================================================
 # 2. RANDOM FOREST (CLASIFICADOR DE PRIORIDAD)
