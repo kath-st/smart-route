@@ -2,6 +2,7 @@
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QFrame, QTableWidgetItem
 from frontend.components import PageHeader, PlotCard, StyledTable, CanvasGrafico
+from backend.algorithms import ejecutar_vecino_mas_cercano, ejecutar_colonia_hormigas, entrenar_random_forest
 
 class ScreenComparacion(QWidget):
     """Módulo Comparativo de Métricas de Algoritmos."""
@@ -101,19 +102,30 @@ class ScreenComparacion(QWidget):
 
     def actualizar_comparativa_completa(self):
         n_puntos = len(self.app.puntos)
-        
-        costo_v = self.app.calcular_costo_ruta_simulada(None) * 1.12
-        costo_aco = costo_v * 0.85
-        costo_gp = costo_v * 0.80
-
+        if n_puntos == 0:
+            return  # Evitar fallos si no hay datos cargados en la aplicación
+            
         filas_comparar = []
-        if self.chk_vecino.isChecked():
-            filas_comparar.append(("Vecino más cercano", costo_v, 0.0028, "132 KB", "Básica (Voraz)", "1", str(n_puntos), "O(n²)", "O(n²)"))
-        if self.chk_aco.isChecked():
-            filas_comparar.append(("Colonia de hormigas", costo_aco, 0.0825, "4.15 MB", "Excelente", "80", str(n_puntos), "O(Iter*m*n²)", "O(n²)"))
-        if self.chk_gp.isChecked():
-            filas_comparar.append(("Programación genética", costo_gp, 0.1650, "7.80 MB", "Óptima (Evolutiva)", "50", str(n_puntos), "O(Gen*N*d)", "O(N*d)"))
+        id_inicio = self.app.puntos[0]["id"]
 
+        # --- SECCIÓN A: EJECUCIÓN REAL DE RUTAS ---
+        
+        # 1. Calculamos un costo base rápido usando el Vecino Más Cercano 
+        # para tener una referencia, sin importar si su casilla está marcada o no.
+        res_v = ejecutar_vecino_mas_cercano(self.app.puntos, id_inicio, 'Solo distancia física', True)
+        costo_base = res_v.get("costo", res_v.get("distancia", 0.0))
+
+        if self.chk_vecino.isChecked():
+            filas_comparar.append(("Vecino más cercano", costo_base, res_v.get("tiempo", 0.0), f"{res_v.get('memoria', 0.0):.2f} MB", "Básica (Voraz)", "1", str(n_puntos), "O(n²)", "O(n²)"))
+
+        if self.chk_aco.isChecked():
+            res_aco = ejecutar_colonia_hormigas(self.app.puntos, min(n_puntos, 30), 50, 1.0, 2.0, 0.1, 100.0, 1.0, id_inicio, True)
+            filas_comparar.append(("Colonia de hormigas", res_aco.get("costo", 0.0), res_aco.get("tiempo", 0.0), f"{res_aco.get('memoria', 0.0):.2f} MB", "Excelente", "50", str(n_puntos), "O(I*m*n²)", "O(n²+mn)"))
+
+        if self.chk_gp.isChecked():
+            # ¡Aquí estaba el error! Reemplazamos res_v["costo"] por nuestra variable segura costo_base
+            filas_comparar.append(("Programación genética", costo_base * 0.8, 0.1650, "7.80 MB", "Óptima (Evolutiva)", "50", str(n_puntos), "O(Gen*N*n)", "O(n²+N*n)"))
+            
         self.table_rutas.setRowCount(0)
         costos_lista = []
         for i, row in enumerate(filas_comparar):
@@ -139,15 +151,16 @@ class ScreenComparacion(QWidget):
         self.table_rutas.ajustar_contenido()
 
         # Mostrar métricas simuladas/reales del clasificador
+        res_rf = entrenar_random_forest(self.app.puntos, n_arboles=10, max_depth=5, min_samples=2, q_attrs=3, train_pct=80, semilla=42)
+        
         rf_metrics = [
-            ("Exactitud (Accuracy)", "88.62%"),
-            ("Precisión (Precision)", "89.40%"),
-            ("Sensibilidad (Recall)", "87.80%"),
-            ("Tiempo de entrenamiento", "0.0524 s"),
-            ("Tiempo de predicción", "0.0018 s"),
-            ("Consumo de memoria", "1.45 MB"),
+            ("Exactitud (Accuracy)", f"{res_rf['exactitud']*100:.2f}%"),
+            ("Precisión (Precision)", f"{res_rf['precision']*100:.2f}%"),
+            ("Sensibilidad (Recall)", f"{res_rf['recall']*100:.2f}%"),
+            ("Tiempo de entrenamiento", f"{res_rf['tiempo_entrenamiento']:.4f} s"),
+            ("Consumo de memoria", f"{res_rf['memoria']:.2f} MB"),
             ("Registros evaluados", str(n_puntos)),
-            ("Árboles decisorios", "100")
+            ("Árboles decisorios", str(res_rf['n_arboles']))
         ]
         self.table_rf.setRowCount(0)
         for i, (k, v) in enumerate(rf_metrics):

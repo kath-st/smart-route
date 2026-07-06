@@ -449,7 +449,7 @@ def iniciar_experimento(tamanos, algoritmos, repeticiones, semilla):
                 # Se acumulan los resultados de la repetición
                 suma_tiempo += res.get("tiempo", 0.0)
                 suma_memoria += res.get("memoria", 0.0)
-                suma_costo += res.get("costo", 0.0)
+                suma_costo += res.get("costo", res.get("distancia", 0.0))
 
             # Promedios
             prom_tiempo = suma_tiempo / repeticiones
