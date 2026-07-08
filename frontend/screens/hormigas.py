@@ -290,6 +290,7 @@ class ScreenHormigas(QWidget):
 
         self.table_fero.setRowCount(0)
         for i, (orig, dest, level) in enumerate(res["feromonas"]):
+            self.table_fero.insertRow(i)
             self.table_fero.setItem(i, 0, QTableWidgetItem(orig))
             self.table_fero.setItem(i, 1, QTableWidgetItem(dest))
             self.table_fero.setItem(i, 2, QTableWidgetItem(f"{level:.4f}"))

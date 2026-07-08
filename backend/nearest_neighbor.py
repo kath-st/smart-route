@@ -141,18 +141,18 @@ def vecino_mas_cercano(puntos: list, id_inicio: str,
             puntos[orden_indices[k + 1]]
         )
 
-    # ── Fin de medición ───────────────────────────────────────────────────────
     t_fin = time.perf_counter()
     _, pico_mem = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
     ruta_ids = [puntos[i]["id"] for i in orden_indices]
-    memoria_kb = pico_mem / 1024.0
+    memoria_mb = pico_mem / (1024.0 * 1024.0)
 
     return {
         "ruta":        ruta_ids,
+        "costo":       distancia_real,
         "distancia":   distancia_real,
         "tiempo":      t_fin - t_inicio,
-        "memoria":     memoria_kb,
+        "memoria":     memoria_mb,
         "operaciones": operaciones,
     }

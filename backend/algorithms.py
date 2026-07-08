@@ -141,8 +141,6 @@ def entrenar_random_forest(puntos, n_arboles, max_depth, min_samples, q_attrs, t
 
     tiempo_entreno = fin_time - inicio_time
     memoria_usada = (fin_mem - inicio_mem) / (1024.0 * 1024.0) # MB
-    if memoria_usada < 0.05:
-         memoria_usada = random.uniform(0.08, 0.15) # Asegurar valor mínimo visible
 
     # Evaluación y cálculo de métricas manuales en el conjunto de test
     y_pred = forest.predict(X_test)

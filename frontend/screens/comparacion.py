@@ -2,7 +2,12 @@
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QFrame, QTableWidgetItem
 from frontend.components import PageHeader, PlotCard, StyledTable, CanvasGrafico
-from backend.algorithms import ejecutar_vecino_mas_cercano, ejecutar_colonia_hormigas, entrenar_random_forest
+from backend.algorithms import (
+    ejecutar_vecino_mas_cercano,
+    ejecutar_colonia_hormigas,
+    entrenar_random_forest,
+    ejecutar_programacion_genetica
+)
 
 class ScreenComparacion(QWidget):
     """Módulo Comparativo de Métricas de Algoritmos."""
@@ -123,8 +128,27 @@ class ScreenComparacion(QWidget):
             filas_comparar.append(("Colonia de hormigas", res_aco.get("costo", 0.0), res_aco.get("tiempo", 0.0), f"{res_aco.get('memoria', 0.0):.2f} MB", "Excelente", "50", str(n_puntos), "O(I*m*n²)", "O(n²+mn)"))
 
         if self.chk_gp.isChecked():
-            # ¡Aquí estaba el error! Reemplazamos res_v["costo"] por nuestra variable segura costo_base
-            filas_comparar.append(("Programación genética", costo_base * 0.8, 0.1650, "7.80 MB", "Óptima (Evolutiva)", "50", str(n_puntos), "O(Gen*N*n)", "O(n²+N*n)"))
+            res_gp = ejecutar_programacion_genetica(
+                puntos=self.app.puntos,
+                pop_size=100,
+                generaciones=50,
+                crossover_t=0.85,
+                mutacion_t=0.10,
+                max_depth=5,
+                torneo_size=4,
+                peso_pri=1.5
+            )
+            filas_comparar.append((
+                "Programación genética",
+                res_gp.get("costo", 0.0),
+                res_gp.get("tiempo", 0.0),
+                f"{res_gp.get('memoria', 0.0):.2f} MB",
+                "Óptima (Evolutiva)",
+                "50",
+                str(n_puntos),
+                "O(Gen*N*n)",
+                "O(n²+N*n)"
+            ))
             
         self.table_rutas.setRowCount(0)
         costos_lista = []

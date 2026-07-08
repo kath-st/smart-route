@@ -8,13 +8,11 @@ SmartRoute es una aplicación académica de escritorio desarrollada en Python ut
 
 El sistema está diseñado para el análisis y diseño de algoritmos de optimización de rutas en redes de transporte, permitiendo trabajar con puntos de atención al cliente, clasificar la prioridad de los mismos y ejecutar algoritmos de optimización de recorridos (TSP - Traveling Salesperson Problem).
 
-Actualmente, se encuentra implementado en su totalidad el módulo correspondiente a:
+Actualmente, el sistema se encuentra desarrollado e integrado en su totalidad, incluyendo los siguientes módulos:
 * **Random Forest**: Algoritmo de ensamble clasificador para predecir la prioridad (Alta, Media, Baja) de los puntos de servicio.
-
-Los siguientes módulos quedan pendientes para ser desarrollados por los demás integrantes del equipo:
-* **Vecino más cercano** (Nearest Neighbor).
-* **Colonia de hormigas** (Ant Colony Optimization).
-* **Programación genética** (Genetic Programming).
+* **Vecino más cercano** (Nearest Neighbor): Heurística voraz para construir rutas iniciales de TSP.
+* **Colonia de hormigas** (Ant Colony Optimization): Metaheurística bio-inspirada para optimización recursiva de rutas.
+* **Programación genética** (Genetic Programming): Generador evolutivo de reglas y fórmulas algebraicas para optimización y ruteo.
 
 ---
 
@@ -25,15 +23,15 @@ El estado de los componentes del software es el siguiente:
 * **Navegación entre módulos**: Creada y funcional.
 * **Módulo Random Forest**: Implementado en su totalidad.
 * **Generación de datos de prueba para Random Forest**: Implementada (genera 60 registros balanceados).
-* **Entrenamiento de Random Forest**: Implementado (soporta split estratificado y registro de recursos).
+* **Entrenamiento de Random Forest**: Implementado (soporta split estratificado y registro de recursos reales).
 * **Clasificación de puntos**: Implementada de forma interactiva.
 * **Métricas del clasificador**: Implementadas (Accuracy, Macro Precision, Macro Recall y matriz de confusión calculadas sobre el set de prueba).
 * **Gráficos del módulo Random Forest**: Implementados (importancia de atributos, matriz de confusión 3x3 y distribución real vs predicha).
-* **Vecino más cercano**: Pendiente (estructura de GUI y stubs creados).
-* **Colonia de hormigas**: Pendiente (estructura de GUI y stubs creados).
-* **Programación genética**: Pendiente (estructura de GUI y stubs creados).
-* **Comparación global**: En integración (interfaz creada, lógica de comparación pendiente).
-* **Experimentos de escalabilidad**: En integración (interfaz creada, lógica de simulación masiva pendiente).
+* **Vecino más cercano**: Implementado y conectado (incluye medición de tiempo y memoria en MB).
+* **Colonia de hormigas**: Implementado y conectado (incluye parámetros avanzados y convergencia interactiva).
+* **Programación genética**: Implementado y conectado (grafica la evolución de aptitud y dibuja el árbol sintáctico).
+* **Comparación global**: Implementado y conectado (compara los tiempos, memoria y costos reales de los algoritmos).
+* **Experimentos de escalabilidad**: Implementado y conectado (ejecuta pruebas masivas reales en la interfaz).
 
 ---
 
@@ -42,9 +40,9 @@ El estado de los componentes del software es el siguiente:
 | Integrante | Responsabilidad | Estado |
 | ---------- | --------------- | ------ |
 | **Katherine** | Random Forest | Implementado |
-| **Gabriel** | Vecino más cercano | Pendiente |
-| **Diana** | Colonia de hormigas | Pendiente |
-| **Ryan** | Programación genética | Pendiente |
+| **Gabriel** | Vecino más cercano | Implementado |
+| **Diana** | Colonia de hormigas | Implementado |
+| **Ryan** | Programación genética | Implementado |
 
 ---
 
@@ -57,7 +55,10 @@ smartroute/
 │
 ├── backend/                             # Carpeta destinada a la lógica de algoritmos
 │   ├── __init__.py
-│   ├── algorithms.py                    # Wrapper principal y stubs de integración
+│   ├── algorithms.py                    # Wrapper principal e integración
+│   ├── ant_colony.py                    # Algoritmo de Colonia de Hormigas (ACO)
+│   ├── genetic_programming.py           # Algoritmo de Programación Genética
+│   ├── nearest_neighbor.py              # Algoritmo de Vecino Más Cercano
 │   └── random_forest.py                 # Algoritmo RandomForest desarrollado desde cero
 │
 ├── frontend/                            # Carpeta destinada a la interfaz de usuario en PySide6
@@ -87,6 +88,7 @@ smartroute/
 │       ├── random_forest.py             # Pantalla interactiva del módulo Random Forest
 │       └── vecino.py
 │
+├── casos_prueba.py                      # Script de pruebas automáticas y proyecciones asintóticas
 ├── README.md
 └── requirements.txt                     # Dependencias del proyecto
 ```
@@ -95,40 +97,6 @@ smartroute/
 * **frontend/main.py**: Punto de entrada de la aplicación. Inicializa el ciclo de Qt, aplica la hoja de estilos y gestiona el enrutamiento de vistas.
 * **backend/**: Contiene las implementaciones matemáticas de los algoritmos de cálculo.
 * **frontend/**: Código de renderizado de la UI de PySide6, paneles de control y lienzos gráficos.
-
----
-
-## Módulo Random Forest
-
-El módulo clasificador Random Forest ha sido desarrollado **desde cero** sin usar frameworks de machine learning (como `scikit-learn` o `pandas`).
-* **Objetivo**: Clasifica puntos de servicio asignándoles una prioridad: **Alta**, **Media** o **Baja**.
-* **Limitación física**: Este algoritmo clasifica prioridades de puntos individuales para servir de apoyo en la toma de decisiones o para alimentar la cola de rutas de otros algoritmos. **No construye rutas ni optimiza recorridos directamente**.
-* **Atributos de entrada**: Trabaja sobre atributos numéricos como coordenadas de ubicación (X, Y), distancia calculada al origen, demanda de carga, tiempo estimado de atención, frecuencia de visitas y nivel de urgencia.
-* **Salida**: Presenta de forma interactiva una tabla con las predicciones y destaca visualmente los aciertos y fallos.
-
----
-
-## Archivos principales del módulo Random Forest
-
-* **[backend/random_forest.py]**: Algoritmo clasificador desde cero (Bootstrap, Gini ponderado, árbol de decisión recursivo y votación del bosque).
-* **[frontend/screens/random_forest.py]**: Vista visual con controles para modificar hiperparámetros, botones de ejecución y reportes interactivos.
-
-*Nota: Estos archivos pertenecen al módulo desarrollado por Katherine y no deben ser modificados por otros integrantes sin coordinación previa.*
-
----
-
-## Funcionalidades del módulo Random Forest
-
-El módulo clasificador cuenta con soporte completo para:
-* **Generar datos de prueba**: Crea de forma balanceada 60 registros (20 Alta, 20 Media, 20 Baja) con IDs en formato `P001`, `P002`, etc.
-* **Cargar datos desde CSV**: Lee y valida la estructura de archivos planos externos.
-* **Configurar parámetros**: Permite alterar hiperparámetros del bosque desde la GUI.
-* **Entrenar el modelo**: Genera el modelo midiendo tiempos exactos y picos de memoria.
-* **Clasificar puntos**: Ejecuta la fase de testeo en tiempo real.
-* **Mostrar prioridades**: Tabla interactiva de 11 columnas con coloreado por aciertos/errores y conjunto al que pertenecen (Entrenamiento/Prueba).
-* **Mostrar métricas de validación**: Accuracy, Macro Precision y Macro Recall en el set de prueba.
-* **Mostrar gráficos**: Tres subplots Matplotlib (importancia Gini, matriz de confusión y distribución de clases).
-* **Exportar resultados**: Guarda el log clasificado en un archivo CSV.
 
 ---
 
@@ -165,9 +133,12 @@ id,x,y,demanda,tiempo,frecuencia,urgencia,clase_real
 ## Instalación y ejecución
 
 ### En Windows:
+Si tienes múltiples versiones de Python instaladas (por ejemplo, a través de MSYS2), se recomienda usar el lanzador oficial de Windows `py` en lugar de `python`:
+
+**Usando Entorno Virtual:**
 ```bash
 # 1. Crear el entorno virtual
-python -m venv venv
+py -m venv venv
 
 # 2. Activar el entorno virtual
 venv\Scripts\activate
@@ -176,7 +147,22 @@ venv\Scripts\activate
 pip install -r requirements.txt
 
 # 4. Ejecutar la aplicación
-python frontend/main.py
+py frontend/main.py
+
+# 5. Ejecutar las pruebas de escalabilidad y casos de prueba
+py casos_prueba.py
+```
+
+**Ejecución Global (sin entorno virtual):**
+```bash
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Ejecutar la aplicación
+py frontend/main.py
+
+# Ejecutar pruebas de escalabilidad
+py casos_prueba.py
 ```
 
 ### En Linux / macOS:
@@ -192,6 +178,9 @@ pip install -r requirements.txt
 
 # 4. Ejecutar la aplicación
 python frontend/main.py
+
+# 5. Ejecutar las pruebas de escalabilidad y casos de prueba
+python casos_prueba.py
 ```
 
 ---
@@ -212,16 +201,9 @@ Para mantener la consistencia del repositorio y no alterar la parte de Random Fo
 
 ---
 
-## Pendientes del proyecto
+## Control de Pruebas y Validación
 
-* Implementar el cálculo matemático del algoritmo de **Vecino más cercano**.
-* Implementar el cálculo matemático del algoritmo de **Colonia de hormigas**.
-* Implementar el cálculo matemático del algoritmo de **Programación genética**.
-* Integrar la lógica del **Sistema comparativo** (Comparación global de resultados).
-* Integrar la lógica de los **Experimentos masivos** de escalabilidad asintótica.
-* Unificar la carga y persistencia del dataset entre todas las pantallas de navegación.
-* Probar el software con datasets reales de ruteo de distribución local.
-* Realizar ajustes estéticos finales y alineación de textos en las tablas secundarias.
+Todos los algoritmos han sido validados con el script central `casos_prueba.py`. Este script genera dinámicamente conjuntos de datos aleatorios, ejecuta las funciones correspondientes y mide sus métricas de hardware de manera formal. Además, proyecta las métricas para conjuntos a gran escala (N=10^6) y extremos (N=10^10) para el análisis de complejidad asintótica.
 
 ---
 

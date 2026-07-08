@@ -118,7 +118,7 @@ class ScreenVecino(QWidget):
         self.row_ruta.setText(" -> ".join(res["ruta"]))
         self.row_dist.setText(f"{res['distancia']:.2f} unidades")
         self.row_tiempo.setText(f"{res['tiempo']:.5f} s")
-        self.row_memoria.setText(f"{res['memoria']:.2f} KB")
+        self.row_memoria.setText(f"{res['memoria']:.4f} MB")
         self.row_ops.setText(str(res["operaciones"]))
 
         self.canvas.graficar_puntos(self.app.puntos, self.ruta_actual, self.plot_card.chk_labels.isChecked())
