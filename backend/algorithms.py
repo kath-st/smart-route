@@ -298,61 +298,35 @@ def ejecutar_colonia_hormigas(puntos, n_hormigas, iteraciones, alfa, beta, rho, 
 # =====================================================================
 # 4. PROGRAMACIÓN GENÉTICA (REGRESION/REGLAS)
 # =====================================================================
+from backend.genetic_programming import programacion_genetica as _pg_real
+ 
+ 
 def ejecutar_programacion_genetica(puntos, pop_size, generaciones, crossover_t, mutacion_t, max_depth, torneo_size, peso_pri):
     """
-    ### CONEXIÓN LOGICA REAL ###
-    Programación Genética evolutiva.
+    Wrapper que delega la ejecución al módulo backend/genetic_programming.py.
+ 
+    Parámetros:
+      - puntos       (list)  : Lista de dicts con claves id, x, y, prioridad, demanda, tiempo, frecuencia, urgencia
+      - pop_size     (int)   : Tamaño de la población (N)
+      - generaciones (int)   : Número de generaciones (G)
+      - crossover_t  (float) : Tasa de cruce rc ∈ [0, 1]
+      - mutacion_t   (float) : Tasa de mutación rm ∈ [0, 1]
+      - max_depth    (int)   : No utilizado en esta implementación (reservado para compatibilidad de GUI)
+      - torneo_size  (int)   : Tamaño del torneo de selección (k)
+      - peso_pri     (float) : Factor λ de ponderación de prioridad vs distancia
+ 
+    Retorna:
+      - dict: ruta, costo, aptitud, gen_encontrado, regla, arbol, tiempo, memoria
     """
-    if not puntos:
-        return {"regla": "", "arbol": "", "ruta": [], "costo": 0.0, "aptitud": 0.0, "gen_encontrado": 0, "tiempo": 0.0, "memoria": 0.0}
-        
-    inicio_time = time.time()
-    
-    # --- ESPACIO PARA LÓGICA DE PROGRAMACIÓN REAL ---
-    # TODO: Evolucionar árboles sintácticos compuestos por operadores (+,-,*,/) y terminales.
-    
-    reglas = [
-        "distancia / (prioridad + 1.0)",
-        "(distancia * 1.3) / (urgencia + demanda)",
-        "distancia / (prioridad * 0.8 + urgencia * 0.2)",
-        "(distancia + tiempoAtencion) / (frecuencia + prioridad)"
-    ]
-    regla_elegida = random.choice(reglas)
-    
-    partes = regla_elegida.split(" ")
-    if len(partes) >= 3:
-        arbol_text = f"        {partes[1]}\n       / \\\n   {partes[0]}   {partes[2]}"
-    else:
-        arbol_text = "       /\n      / \\\n distancia prioridad"
-        
-    puntos_ids = [p["id"] for p in puntos]
-    random.shuffle(puntos_ids)
-    ruta = puntos_ids + [puntos_ids[0]]
-    
-    p_dict = {p["id"]: p for p in puntos}
-    distancia = 0.0
-    for i in range(len(ruta) - 1):
-        p1 = p_dict.get(ruta[i])
-        p2 = p_dict.get(ruta[i+1])
-        if p1 and p2:
-            distancia += ((p2["x"] - p1["x"])**2 + (p2["y"] - p1["y"])**2)**0.5
-            
-    costo_opt = distancia * random.uniform(0.74, 0.86)
-    aptitud = costo_opt * 0.94
-    gen_encontrado = random.randint(8, generaciones - 3)
-    tiempo = (time.time() - inicio_time) + random.uniform(0.10, 0.25)
-    memoria = random.uniform(5.9, 9.1) # MB
-    
-    return {
-        "regla": regla_elegida,
-        "arbol": arbol_text,
-        "ruta": ruta,
-        "costo": costo_opt,
-        "aptitud": aptitud,
-        "gen_encontrado": gen_encontrado,
-        "tiempo": tiempo,
-        "memoria": memoria
-    }
+    return _pg_real(
+        puntos        = puntos,
+        tam_poblacion = pop_size,
+        generaciones  = generaciones,
+        tasa_cruce    = crossover_t,
+        tasa_mutacion = mutacion_t,
+        tam_torneo    = torneo_size,
+        peso_prioridad= peso_pri
+    )
 
 # =====================================================================
 # 5. MÓDULO COMPARATIVO Y EXPERIMENTAL
