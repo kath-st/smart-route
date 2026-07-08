@@ -13,7 +13,6 @@ y los experimentos. Aquí se conectará la lógica de cálculo real.
 import time
 import random
 import csv
-
 # =====================================================================
 # 1. VECINO MÁS CERCANO (TSP)
 # =====================================================================
@@ -245,54 +244,51 @@ def clasificar_puntos_random_forest(puntos, modelo_info):
 # =====================================================================
 # 3. COLONIA DE HORMIGAS (OPTIMIZACIÓN TSP)
 # =====================================================================
+from backend.ant_colony import resolver_tsp_aco
 def ejecutar_colonia_hormigas(puntos, n_hormigas, iteraciones, alfa, beta, rho, q, feromona_ini, id_inicio, regresar_origen):
     """
-    ### CONEXIÓN LOGICA REAL ###
-    Optimización metaheurística global ACO.
+    Wrapper que mide tiempos y memoria, delegando la carga algorítmica al ant_colony.py
     """
     if not puntos:
         return {"ruta": [], "costo": 0.0, "mejor_iter": 0, "tiempo": 0.0, "memoria": 0.0, "feromonas": []}
         
-    inicio_time = time.time()
+    # Iniciar mediciones de hardware
+    tracemalloc.start()
+    inicio_mem = tracemalloc.get_traced_memory()[0]
+    inicio_time = time.perf_counter()
     
-    # --- ESPACIO PARA LÓGICA DE PROGRAMACIÓN REAL ---
-    # TODO: Implementar actualización de feromonas y ciclo constructivo de hormigas.
+    # -------------------------------------------------------------
+    # LLAMADA AL NÚCLEO ALGORÍTMICO (Lógica Real)
+    # -------------------------------------------------------------
+    resultado = resolver_tsp_aco(
+        puntos=puntos,
+        m=n_hormigas,             # <-- Cambiado de n_hormigas a m
+        iteraciones=iteraciones,
+        alpha=alfa,               # <-- Cambiado de alfa a alpha
+        beta=beta,
+        rho=rho,
+        Q=q,                      # <-- Cambiado de q a Q
+        tau_0=feromona_ini,       # <-- Cambiado de feromona_ini a tau_0
+        id_inicio=id_inicio,
+        regresar_origen=regresar_origen
+    )
     
-    restantes = [p for p in puntos if p["id"] != id_inicio]
-    random.shuffle(restantes)
-    ruta = [id_inicio] + [p["id"] for p in restantes]
-    if regresar_origen:
-        ruta.append(id_inicio)
-        
-    p_dict = {p["id"]: p for p in puntos}
-    distancia = 0.0
-    for i in range(len(ruta) - 1):
-        p1 = p_dict.get(ruta[i])
-        p2 = p_dict.get(ruta[i+1])
-        if p1 and p2:
-            distancia += ((p2["x"] - p1["x"])**2 + (p2["y"] - p1["y"])**2)**0.5
-            
-    distancia_opt = distancia * random.uniform(0.78, 0.90)
-    mejor_iter = random.randint(10, int(iteraciones * 0.75))
-    tiempo = (time.time() - inicio_time) + random.uniform(0.05, 0.12)
-    memoria = random.uniform(3.4, 4.9) # MB
+    # Detener mediciones
+    fin_time = time.perf_counter()
+    fin_mem = tracemalloc.get_traced_memory()[1] # Memoria pico
+    tracemalloc.stop()
     
-    # Feromonas simuladas
-    feromonas = []
-    puntos_ids = [p["id"] for p in puntos]
-    for _ in range(6):
-        o = random.choice(puntos_ids)
-        d = random.choice([x for x in puntos_ids if x != o])
-        lvl = random.uniform(0.5, feromona_ini * 2.2)
-        feromonas.append((o, d, lvl))
-        
+    tiempo_total = fin_time - inicio_time
+    memoria_mb = (fin_mem - inicio_mem) / (1024.0 * 1024.0)
+
+    # El frontend de PySide6 espera este diccionario exacto
     return {
-        "ruta": ruta,
-        "costo": distancia_opt,
-        "mejor_iter": mejor_iter,
-        "tiempo": tiempo,
-        "memoria": memoria,
-        "feromonas": feromonas
+        "ruta": resultado["ruta"],
+        "costo": resultado["costo"],
+        "mejor_iter": resultado["mejor_iter"],
+        "tiempo": tiempo_total,
+        "memoria": memoria_mb,
+        "feromonas": resultado["feromonas"]
     }
 
 # =====================================================================
@@ -331,17 +327,123 @@ def ejecutar_programacion_genetica(puntos, pop_size, generaciones, crossover_t, 
 # =====================================================================
 # 5. MÓDULO COMPARATIVO Y EXPERIMENTAL
 # =====================================================================
-def ejecutar_comparacion(puntos, algoritmos_activos):
-    pass
+def generar_puntos_prueba(n):
+    """Genera n puntos aleatorios para las pruebas de estrés."""
+    puntos = []
+    for i in range(n):
+        puntos.append({
+            "id": f"P{i}",
+            "x": random.uniform(0, 1000),
+            "y": random.uniform(0, 1000),
+            "prioridad": random.choice(["Alta", "Media", "Baja"]),
+            "demanda": random.randint(1, 10),
+            "tiempo": random.uniform(5.0, 15.0),
+            "frecuencia": random.uniform(1.0, 5.0),
+            "urgencia": random.randint(1, 5)
+        })
+    return puntos
 
-def iniciar_experimento(tamano, algoritmos, repeticiones, semilla):
-    pass
+def iniciar_experimento(tamanos, algoritmos, repeticiones, semilla):
+    if semilla is not None:
+        random.seed(semilla)
+        
+    resultados_tabla = []
+
+    for n in tamanos:
+        for algo in algoritmos:
+            suma_tiempo = 0.0
+            suma_memoria = 0.0
+            suma_costo = 0.0
+
+            for rep in range(repeticiones):
+                puntos_prueba = generar_puntos_prueba(n)
+                id_inicio = puntos_prueba[0]["id"]
+                
+                # 1. ALGORITMO DE TU COMPAÑERO (VECINO MÁS CERCANO)
+                if algo == "Vecino Más Cercano":
+                    res = ejecutar_vecino_mas_cercano(
+                        puntos=puntos_prueba, 
+                        id_inicio=id_inicio, 
+                        criterio='Solo distancia física', 
+                        regresar_origen=True
+                    )
+                
+                # 2. TU ALGORITMO (COLONIA DE HORMIGAS)
+                elif algo == "Colonia de Hormigas":
+                    res = ejecutar_colonia_hormigas(
+                        puntos=puntos_prueba,
+                        n_hormigas=min(n, 30),
+                        iteraciones=50,
+                        alfa=1.0,
+                        beta=2.0,
+                        rho=0.1,
+                        q=100.0,
+                        feromona_ini=1.0,
+                        id_inicio=id_inicio,
+                        regresar_origen=True
+                    )
+                    
+                # 3. ALGORITMO DE TU COMPAÑERO (PROGRAMACIÓN GENÉTICA)
+                elif algo == "Programación Genética":
+                    # Tu compañero de Genéticos solo debe ajustar los parámetros aquí
+                    res = ejecutar_programacion_genetica(
+                        puntos=puntos_prueba,
+                        pop_size=50,
+                        generaciones=100,
+                        crossover_t=0.8,
+                        mutacion_t=0.1,
+                        max_depth=5,
+                        torneo_size=3,
+                        peso_pri=0.5
+                    )
+                    
+                # 4. ALGORITMO DE TU COMPAÑERO (RANDOM FOREST)
+                elif algo == "Random Forest":
+                    # Nota: Como Random Forest es para clasificar y no para rutas, 
+                    # su 'costo' devuelto podría ser 0, pero el tiempo y memoria sí se miden.
+                    res = entrenar_random_forest(
+                        puntos=puntos_prueba,
+                        n_arboles=10,
+                        max_depth=5,
+                        min_samples=2,
+                        q_attrs=3,
+                        train_pct=80,
+                        semilla=semilla
+                    )
+                    # Forzamos que devuelva el formato que la tabla espera
+                    res = {
+                        "tiempo": res.get("tiempo_entrenamiento", 0.0),
+                        "memoria": res.get("memoria", 0.0),
+                        "costo": 0.0 
+                    }
+                    
+                else:
+                    res = {"tiempo": 0.0, "memoria": 0.0, "costo": 0.0}
+
+                # Se acumulan los resultados de la repetición
+                suma_tiempo += res.get("tiempo", 0.0)
+                suma_memoria += res.get("memoria", 0.0)
+                suma_costo += res.get("costo", res.get("distancia", 0.0))
+
+            # Promedios
+            prom_tiempo = suma_tiempo / repeticiones
+            prom_mem = suma_memoria / repeticiones
+            prom_costo = suma_costo / repeticiones
+
+            fila = [n, algo, f"{prom_tiempo:.4f} s", f"{prom_mem:.2f} MB", f"{prom_costo:.2f}"]
+            resultados_tabla.append(fila)
+
+    return resultados_tabla
 
 def exportar_resultados_csv(datos_tabla, path_archivo):
+    """Exporta la tabla generada a un archivo CSV."""
+    import csv
     try:
         with open(path_archivo, mode='w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
+            # Escribir cabeceras
             writer.writerow(["N (Puntos)", "Algoritmo", "Tiempo Medio", "Memoria Promedio", "Costo Promedio"])
+            # Escribir datos
             for row in datos_tabla:
                 writer.writerow(row)
         return True

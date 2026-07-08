@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushBu
 from frontend.components import PageHeader, ParameterCard, PlotCard, StyledTable, CanvasGrafico
 
 try:
-    from backend.algorithms import exportar_resultados_csv
+    from backend.algorithms import exportar_resultados_csv, iniciar_experimento
 except ImportError:
     # Simulación local
     import csv
@@ -190,25 +190,28 @@ class ScreenExperimentos(QWidget):
         self.table_exp.setRowCount(0)
         self.datos_tabla_cache = []
 
-        n = self.puntos_n
-        if self.chk_vecino_exp.isChecked():
-            t = (n ** 2) * 0.000000008 + 0.001
-            m = n * 0.12 + 120.0
-            c = n * 11.5
-            self.datos_tabla_cache.append((n, "Vecino más cercano", f"{t:.6f} s", f"{m:.2f} KB", f"{c:.2f}"))
+        # 1. Identificar qué algoritmos probar
+        algos_seleccionados = []
+        if self.chk_vecino_exp.isChecked(): algos_seleccionados.append("Vecino Más Cercano")
+        if self.chk_aco_exp.isChecked(): algos_seleccionados.append("Colonia de Hormigas")
+        if self.chk_gp_exp.isChecked(): algos_seleccionados.append("Programación Genética")
 
-        if self.chk_aco_exp.isChecked():
-            t = (n ** 2) * 0.0000006 + 0.035
-            m = n * 0.45 + 1024.0
-            c = n * 8.2
-            self.datos_tabla_cache.append((n, "Colonia de hormigas", f"{t:.6f} s", f"{m:.2f} KB", f"{c:.2f}"))
+        # 2. Tamaños (N) a evaluar. Inyectamos tamaños pequeños para armar la curva, 
+        # además del tamaño seleccionado en la interfaz
+        tamanos = [10, 50, 100]
+        if self.puntos_n not in tamanos:
+            tamanos.append(self.puntos_n)
+        tamanos.sort()
 
-        if self.chk_gp_exp.isChecked():
-            t = n * 0.00018 + 0.075
-            m = n * 0.28 + 2048.0
-            c = n * 7.5
-            self.datos_tabla_cache.append((n, "Programación genética", f"{t:.6f} s", f"{m:.2f} KB", f"{c:.2f}"))
+        # 3. LLAMADA REAL AL BACKEND (Esto puede congelar la ventana unos segundos)
+        self.datos_tabla_cache = iniciar_experimento(
+            tamanos=tamanos,
+            algoritmos=algos_seleccionados,
+            repeticiones=self.spin_reps.value(),
+            semilla=self.spin_semilla.value()
+        )
 
+        # 4. Llenar la tabla dinámica
         for i, row in enumerate(self.datos_tabla_cache):
             self.table_exp.insertRow(i)
             self.table_exp.setItem(i, 0, QTableWidgetItem(str(row[0])))
@@ -218,7 +221,7 @@ class ScreenExperimentos(QWidget):
             self.table_exp.setItem(i, 4, QTableWidgetItem(row[4]))
         self.table_exp.ajustar_contenido()
 
-        # Graficar curvas de complejidad empíricas
+        # 5. Graficar curvas de complejidad empíricas usando los resultados reales
         self.canvas.limpiar_grafico()
         self.canvas.fig.clf()
         
@@ -232,31 +235,24 @@ class ScreenExperimentos(QWidget):
         ax_t.grid(True, color='#E5E7EB', linestyle='--')
         ax_m.grid(True, color='#E5E7EB', linestyle='--')
 
-        tamanos = [10, 100, 500, 1000, 5000]
-        
-        if self.chk_vecino_exp.isChecked():
-            ys_t = [(x**2)*0.000000008 for x in tamanos]
-            ys_m = [x*0.12 + 120.0 for x in tamanos]
-            ax_t.plot(tamanos, ys_t, '-o', label='Vecino (O(n²))', color='#1D4ED8')
-            ax_m.plot(tamanos, ys_m, '-o', label='Vecino', color='#1D4ED8')
+        for algo in algos_seleccionados:
+            xs_tamanos, ys_tiempo, ys_memoria = [], [], []
+            for row in self.datos_tabla_cache:
+                if row[1] == algo:
+                    xs_tamanos.append(row[0])
+                    # Limpiamos el texto ' s' y ' MB' para convertir a float
+                    ys_tiempo.append(float(row[2].replace(' s', '')))
+                    ys_memoria.append(float(row[3].replace(' MB', '')))
             
-        if self.chk_aco_exp.isChecked():
-            ys_t = [(x**2)*0.0000006 for x in tamanos]
-            ys_m = [x*0.45 + 1024.0 for x in tamanos]
-            ax_t.plot(tamanos, ys_t, '-s', label='ACO (O(n²))', color='#22C55E')
-            ax_m.plot(tamanos, ys_m, '-s', label='ACO', color='#22C55E')
-            
-        if self.chk_gp_exp.isChecked():
-            ys_t = [x*0.00018 for x in tamanos]
-            ys_m = [x*0.28 + 2048.0 for x in tamanos]
-            ax_t.plot(tamanos, ys_t, '-^', label='GP (O(n))', color='#8B5CF6')
-            ax_m.plot(tamanos, ys_m, '-^', label='GP', color='#8B5CF6')
+            color = '#1D4ED8' if 'Vecino' in algo else '#22C55E' if 'Hormigas' in algo else '#8B5CF6'
+            ax_t.plot(xs_tamanos, ys_tiempo, '-o', label=algo, color=color)
+            ax_m.plot(xs_tamanos, ys_memoria, '-o', label=algo, color=color)
 
         ax_t.set_title("Tiempo Medio (s) vs N", color='#111827', fontsize=9, fontweight='semibold')
         ax_t.set_xlabel("N (Puntos)", color='#111827', fontsize=8)
         ax_t.legend(facecolor='#FFFFFF', edgecolor='#E5E7EB')
 
-        ax_m.set_title("Memoria (KB) vs N", color='#111827', fontsize=9, fontweight='semibold')
+        ax_m.set_title("Memoria (MB) vs N", color='#111827', fontsize=9, fontweight='semibold')
         ax_m.set_xlabel("N (Puntos)", color='#111827', fontsize=8)
         ax_m.legend(facecolor='#FFFFFF', edgecolor='#E5E7EB')
 
