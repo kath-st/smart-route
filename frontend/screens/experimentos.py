@@ -198,7 +198,8 @@ class ScreenExperimentos(QWidget):
 
         # 2. Tamaños (N) a evaluar. Inyectamos tamaños pequeños para armar la curva, 
         # además del tamaño seleccionado en la interfaz
-        tamanos = [10, 50, 100]
+        tamanos_base = [10, 50, 100]
+        tamanos = [t for t in tamanos_base if t < self.puntos_n]
         if self.puntos_n not in tamanos:
             tamanos.append(self.puntos_n)
         tamanos.sort()
